@@ -1,0 +1,16 @@
+services:
+  users-backend:
+    build: ./
+    container_name: users-api
+    restart: unless-stopped
+    labels:
+    networks:
+      - proxy
+    env_file:
+      - ./.env
+
+networks:
+  proxy:
+    external: true
+  postgres:
+    external: true
