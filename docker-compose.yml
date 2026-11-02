@@ -1,6 +1,7 @@
 services:
   users-api:
     build: ./
+    container_name: users-api
     restart: unless-stopped
     networks:
       - proxy
