@@ -1,11 +1,27 @@
 services:
-  users-backend:
+  users-api:
     build: ./
-    container_name: users-api
     restart: unless-stopped
-    labels:
     networks:
       - proxy
+      - postgres
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.users-api.rule=Host(`users.marcel.co.nz`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.users-api.entrypoints=websecure"
+      - "traefik.http.routers.users-api.tls=true"
+      - "traefik.http.routers.users-api.tls.certresolver=myresolver"
+
+      - "traefik.http.services.users-api.loadbalancer.server.port=8000"
+
+      - "traefik.http.middlewares.users-api-strip.stripprefix.prefixes=/api"
+
+      - "traefik.http.middlewares.users-api-ratelimit.ratelimit.average=10"
+      - "traefik.http.middlewares.users-api-ratelimit.ratelimit.burst=20"
+      - "traefik.http.middlewares.users-api-buffer.buffering.maxRequestBodyBytes=5242880"
+
+      - "traefik.http.routers.users-api.middlewares=users-api-ratelimit,users-api-buffer,users-api-strip"
     env_file:
       - ./.env
 
