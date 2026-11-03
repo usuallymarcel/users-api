@@ -17,12 +17,12 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class Credentials(BaseModel):
+class Data(BaseModel):
     token: str
 
 
 @router.post('')
-def user(data: Credentials, db: Session = Depends(get_db)):
+def token(data: Data, db: Session = Depends(get_db)):
     session = get_session_by_id(db, data.token)
 
     user = get_user_by_id(db, session.user_id)
