@@ -10,7 +10,7 @@ from app.utils.credentials import check_password
 from app.utils.session_tokens import get_session_from_request
 
 
-router = APIRouter(prefix='api/users', tags=['users'])
+router = APIRouter(prefix='/api/users', tags=['users'])
 
 class Credentials(BaseModel):
     name: str

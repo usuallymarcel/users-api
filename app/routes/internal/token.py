@@ -8,7 +8,7 @@ from app.crud.users import get_user_by_id
 from app.utils.session_tokens import get_session_by_id
 
 
-router = APIRouter(prefix='internal/token', tags=['token'])
+router = APIRouter(prefix='/internal/token', tags=['token'])
 
 class UserResponse(BaseModel):
     id: int
@@ -21,8 +21,8 @@ class Credentials(BaseModel):
     token: str
 
 
-@router.get('/user')
-def user(data: Credentials, request: Request, db: Session = Depends(get_db)):
+@router.post('')
+def user(data: Credentials, db: Session = Depends(get_db)):
     session = get_session_by_id(db, data.token)
 
     user = get_user_by_id(db, session.user_id)
