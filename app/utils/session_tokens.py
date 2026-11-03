@@ -41,6 +41,24 @@ def get_session_from_request(db: Session, request: Request):
 
     return session
 
+def get_session_by_id(db: Session, id: str):
+    if not id:
+        raise HTTPException(status_code=401, detail='Not authenticated')
+    
+    session = get_session_token_by_id(db, id)
+
+    if not session:
+        raise HTTPException(status_code=401, detail='Invalid Session')
+    
+    if session.expires_at < datetime.now(timezone.utc):
+        db.delete(session)
+        db.commit()
+        raise HTTPException(status_code=401, detail='Session expired')
+    
+    refresh_session_if_needed(db, session)
+
+    return session
+
 def refresh_session_if_needed(db: Session, session: Session_Token):
     if session.expires_at - datetime.now(timezone.utc) < timedelta(hours=4):
         session.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
