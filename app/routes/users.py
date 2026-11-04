@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.crud.session_tokens import create_session
+from app.crud.session_tokens import REMEMBERED_SESSION_TTL, create_session
 from app.database import get_db
 from app.crud.users import create_user, get_user_by_id, get_user_by_name
 from app.utils.credentials import check_password
@@ -15,6 +15,7 @@ router = APIRouter(prefix='/api/users', tags=['users'])
 class Credentials(BaseModel):
     name: str
     password: str
+    remember: bool = False
 
 class UserResponse(BaseModel):
     id: int
@@ -22,6 +23,16 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+def set_session_cookie(response: Response, session_id: str, remember: bool):
+    response.set_cookie(
+        key='session_id',
+        value=session_id,
+        max_age=int(REMEMBERED_SESSION_TTL.total_seconds()) if remember else None,
+        httponly=True,
+        secure=True,
+        samesite='lax'
+    )
 
 @router.post('/login')
 def login(data: Credentials, response: Response, db: Session = Depends(get_db)):
@@ -33,15 +44,9 @@ def login(data: Credentials, response: Response, db: Session = Depends(get_db)):
     if not check_password(data.password, user.hashed_password, user.salt, user.iterations):
         return {'verified': False, 'message': 'Incorrect login details'}
     
-    session_token = create_session(db, user.id)
+    session_token = create_session(db, user.id, data.remember)
 
-    response.set_cookie(
-        key='session_id',
-        value=session_token.id,
-        httponly=True,
-        secure=True,
-        samesite='lax'
-    )
+    set_session_cookie(response, session_token.id, data.remember)
 
     return {'verified': True, 'message': 'Successfully logged in', 'user': UserResponse.model_validate(user)}
 
@@ -54,15 +59,9 @@ def sign_up(data: Credentials, response: Response, db: Session = Depends(get_db)
 
     user = create_user(db, data.name, data.password)
 
-    session_token = create_session(db, user.id)
+    session_token = create_session(db, user.id, data.remember)
 
-    response.set_cookie(
-        key='session_id',
-        value=session_token.id,
-        httponly=True,
-        secure=True,
-        samesite='lax'
-    )
+    set_session_cookie(response, session_token.id, data.remember)
 
     return {'verified': True, 'message': 'created new user', 'user': UserResponse.model_validate(user)}
 

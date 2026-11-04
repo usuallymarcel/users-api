@@ -60,8 +60,14 @@ def get_session_by_id(db: Session, id: str):
     return session
 
 def refresh_session_if_needed(db: Session, session: Session_Token):
-    if session.expires_at - datetime.now(timezone.utc) < timedelta(hours=4):
-        session.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+    # Slide each session by its own lifetime so remembered sessions stay long-lived.
+    # Refreshing resets created_at too, keeping expires_at - created_at equal to the TTL.
+    now = datetime.now(timezone.utc)
+    ttl = session.expires_at - session.created_at
+
+    if session.expires_at - now < ttl / 6:
+        session.created_at = now
+        session.expires_at = now + ttl
         db.commit()
 
 def get_session_from_websocket(db: Session, websocket: WebSocket):
